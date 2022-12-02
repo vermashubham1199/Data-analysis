@@ -1,0 +1,425 @@
+USE crimes_in_India_district_wise
+GO
+
+
+-- 1 no of crimes per state
+SELECT 
+	 [STATE/UT]
+	,SUM
+		  (
+		  +[MURDER]
+		  +[ATTEMPT TO MURDER]
+		  +[CULPABLE HOMOSIDE NOT AMMOUNTING TO MURDER]
+		  +[RAPE]
+		  +[CUSTODIAL RAPE]
+		  +[OTHER RAPE]
+		  +[KIDNAPPING & ABDUCTION]
+		  +[KIDNAPPING AND ABDUCTION OF WOMEN AND GIRLS]
+		  +[KIDNAPPING AND ABDUCTION OF OTHERS]
+		  +[DACOITY]
+		  +[PREPARATION AND ASSEMBLY FOR DACOITY]
+		  +[ROBBERY]
+		  +[BURGLARY]
+		  +[THEFT]
+		  +[AUTO THEFT]
+		  +[OTHER THEFT]
+		  +[RIOTS]
+		  +[CRIMINAL BREACH OF TRUST]
+		  +[CHEATING]
+		  +[COUNTERFIETING]
+		  +[ARSON]
+		  +[HURT/GREVIOUS HURT]
+		  +[DOWRY DEATHS]
+		  +[ASSAULTON WOMEN WITH INTENT TO OUTRAGE HER MODESTY]
+		  +[INSULT TO MODESTY OF WOMEN]
+		  +[CRUELTY BY HUSBAND OR BY HIS RELATIVES]
+		  +[IMPORTATION OF GIRLS FROM FOREIGN COUNTRIES]
+		  +[CAUSING DEATH BY NEGLIGENCE]
+		  +[OTHER IPC CRIMES]) AS no_of_case_registred
+FROM criminal_records_of_India
+WHERE NOT DISTRICT = 'total'
+GROUP BY [STATE/UT]
+ORDER BY no_of_case_registred;
+
+
+-- 2 no of crimes per district
+SELECT 
+	 DISTRICT
+	,SUM
+		  (
+		  +[MURDER]
+		  +[ATTEMPT TO MURDER]
+		  +[CULPABLE HOMOSIDE NOT AMMOUNTING TO MURDER]
+		  +[RAPE]
+		  +[CUSTODIAL RAPE]
+		  +[OTHER RAPE]
+		  +[KIDNAPPING & ABDUCTION]
+		  +[KIDNAPPING AND ABDUCTION OF WOMEN AND GIRLS]
+		  +[KIDNAPPING AND ABDUCTION OF OTHERS]
+		  +[DACOITY]
+		  +[PREPARATION AND ASSEMBLY FOR DACOITY]
+		  +[ROBBERY]
+		  +[BURGLARY]
+		  +[THEFT]
+		  +[AUTO THEFT]
+		  +[OTHER THEFT]
+		  +[RIOTS]
+		  +[CRIMINAL BREACH OF TRUST]
+		  +[CHEATING]
+		  +[COUNTERFIETING]
+		  +[ARSON]
+		  +[HURT/GREVIOUS HURT]
+		  +[DOWRY DEATHS]
+		  +[ASSAULTON WOMEN WITH INTENT TO OUTRAGE HER MODESTY]
+		  +[INSULT TO MODESTY OF WOMEN]
+		  +[CRUELTY BY HUSBAND OR BY HIS RELATIVES]
+		  +[IMPORTATION OF GIRLS FROM FOREIGN COUNTRIES]
+		  +[CAUSING DEATH BY NEGLIGENCE]
+		  +[OTHER IPC CRIMES]) AS no_of_case_registred
+FROM criminal_records_of_India
+WHERE NOT DISTRICT LIKE '%total%'
+GROUP BY DISTRICT
+ORDER BY no_of_case_registred;
+
+
+-- 3 no of murders per state
+SELECT
+	 [STATE/UT]
+	,SUM(MURDER) AS total_murders
+FROM criminal_records_of_India
+GROUP BY [STATE/UT]
+ORDER BY total_murders;
+
+
+
+
+-- 4 no of murders per district
+SELECT
+	 DISTRICT
+	,SUM(MURDER) AS total_murders
+FROM criminal_records_of_India
+WHERE NOT DISTRICT LIKE '%total%'
+GROUP BY DISTRICT
+ORDER BY total_murders;
+
+
+
+
+-- 5 heighest crime commited in each state per year other than "other ipc crimes"
+WITH 
+x AS
+(
+	SELECT
+		 year
+		,[state/ut]
+		,type_of_crime
+		,no_of_cases
+	from criminal_records_of_India
+
+	UNPIVOT(
+		no_of_cases FOR type_of_crime
+		IN ([MURDER]
+		  ,[ATTEMPT TO MURDER]
+		  ,[CULPABLE HOMOSIDE NOT AMMOUNTING TO MURDER]
+		  ,[RAPE]
+		  ,[CUSTODIAL RAPE]
+		  ,[OTHER RAPE]
+		  ,[KIDNAPPING & ABDUCTION]
+		  ,[KIDNAPPING AND ABDUCTION OF WOMEN AND GIRLS]
+		  ,[KIDNAPPING AND ABDUCTION OF OTHERS]
+		  ,[DACOITY]
+		  ,[PREPARATION AND ASSEMBLY FOR DACOITY]
+		  ,[ROBBERY]
+		  ,[BURGLARY]
+		  ,[THEFT]
+		  ,[AUTO THEFT]
+		  ,[OTHER THEFT]
+		  ,[RIOTS]
+		  ,[CRIMINAL BREACH OF TRUST]
+		  ,[CHEATING]
+		  ,[COUNTERFIETING]
+		  ,[ARSON]
+		  ,[HURT/GREVIOUS HURT]
+		  ,[DOWRY DEATHS]
+		  ,[ASSAULTON WOMEN WITH INTENT TO OUTRAGE HER MODESTY]
+		  ,[INSULT TO MODESTY OF WOMEN]
+		  ,[CRUELTY BY HUSBAND OR BY HIS RELATIVES]
+		  ,[IMPORTATION OF GIRLS FROM FOREIGN COUNTRIES]
+		  ,[CAUSING DEATH BY NEGLIGENCE]
+		  ,[OTHER IPC CRIMES])) AS crimes_per_year
+),
+Y AS
+(
+	SELECT 
+		 year
+		,[STATE/UT]
+		,type_of_crime
+		,SUM(no_of_cases) AS total_no_of_cases
+	FROM x
+	GROUP BY YEAR,[STATE/UT],type_of_crime
+
+), 
+z AS
+(
+	SELECT 
+		 year
+		,[STATE/UT]
+		,FIRST_VALUE(CONCAT(type_of_crime ,' ',  total_no_of_cases)) OVER(PARTITION BY YEAR,[STATE/UT] ORDER BY total_no_of_cases DESC) AS heighest_no_of_crime
+	FROM y
+	WHERE NOT type_of_crime LIKE '%OTHER IPC CRIMES%'
+)
+SELECT * FROM Z
+GROUP BY YEAR, [STATE/UT], heighest_no_of_crime
+ORDER BY YEAR, [STATE/UT];
+
+
+
+-- 6 running total of crimes of each state per year
+WITH 
+x AS
+(
+	SELECT 
+		 [STATE/UT]
+		,YEAR
+		,SUM
+			  (
+			  +[MURDER]
+			  +[ATTEMPT TO MURDER]
+			  +[CULPABLE HOMOSIDE NOT AMMOUNTING TO MURDER]
+			  +[RAPE]
+			  +[CUSTODIAL RAPE]
+			  +[OTHER RAPE]
+			  +[KIDNAPPING & ABDUCTION]
+			  +[KIDNAPPING AND ABDUCTION OF WOMEN AND GIRLS]
+			  +[KIDNAPPING AND ABDUCTION OF OTHERS]
+			  +[DACOITY]
+			  +[PREPARATION AND ASSEMBLY FOR DACOITY]
+			  +[ROBBERY]
+			  +[BURGLARY]
+			  +[THEFT]
+			  +[AUTO THEFT]
+			  +[OTHER THEFT]
+			  +[RIOTS]
+			  +[CRIMINAL BREACH OF TRUST]
+			  +[CHEATING]
+			  +[COUNTERFIETING]
+			  +[ARSON]
+			  +[HURT/GREVIOUS HURT]
+			  +[DOWRY DEATHS]
+			  +[ASSAULTON WOMEN WITH INTENT TO OUTRAGE HER MODESTY]
+			  +[INSULT TO MODESTY OF WOMEN]
+			  +[CRUELTY BY HUSBAND OR BY HIS RELATIVES]
+			  +[IMPORTATION OF GIRLS FROM FOREIGN COUNTRIES]
+			  +[CAUSING DEATH BY NEGLIGENCE]
+			  +[OTHER IPC CRIMES]) AS no_of_case_registred
+	FROM criminal_records_of_India
+	WHERE NOT DISTRICT LIKE '%total%'
+	GROUP BY [STATE/UT], YEAR
+)
+
+SELECT 
+	 [STATE/UT]
+	,YEAR
+	,SUM(no_of_case_registred) OVER(PARTITION BY [STATE/UT] ORDER BY year ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW ) AS r_total_of_crime
+FROM x;
+
+
+
+-- 7 showing voilence against women in each state per year
+
+SELECT 
+	 [STATE/UT]
+	,YEAR
+	,SUM
+		(
+		 +[RAPE]
+		 +[CUSTODIAL RAPE]
+		 +[OTHER RAPE]
+		 +[KIDNAPPING AND ABDUCTION OF WOMEN AND GIRLS]
+		 +[DOWRY DEATHS]
+		 +[ASSAULTON WOMEN WITH INTENT TO OUTRAGE HER MODESTY]
+		 +[INSULT TO MODESTY OF WOMEN]
+		 +[CRUELTY BY HUSBAND OR BY HIS RELATIVES]
+		 +[IMPORTATION OF GIRLS FROM FOREIGN COUNTRIES]) AS no_of_case_registred
+FROM criminal_records_of_India
+WHERE NOT DISTRICT LIKE '%total%'
+GROUP BY [STATE/UT], YEAR
+ORDER BY [STATE/UT], YEAR;
+
+
+
+
+-- 8 showing domestic voilence against women in each state per year
+SELECT 
+	 [STATE/UT]
+	,YEAR
+	,SUM
+		(
+		+[DOWRY DEATHS]
+		+[CRUELTY BY HUSBAND OR BY HIS RELATIVES]) AS no_of_case_registred
+FROM criminal_records_of_India
+WHERE NOT DISTRICT LIKE '%total%'
+GROUP BY [STATE/UT], YEAR
+ORDER BY [STATE/UT], YEAR;
+
+
+-- 9 showing voilence against women in each district per year
+SELECT 
+	 DISTRICT
+	,YEAR
+	,SUM
+		(
+		 +[RAPE]
+		 +[CUSTODIAL RAPE]
+		 +[OTHER RAPE]
+		 +[KIDNAPPING AND ABDUCTION OF WOMEN AND GIRLS]
+		 +[DOWRY DEATHS]
+		 +[ASSAULTON WOMEN WITH INTENT TO OUTRAGE HER MODESTY]
+		 +[INSULT TO MODESTY OF WOMEN]
+		 +[CRUELTY BY HUSBAND OR BY HIS RELATIVES]
+		 +[IMPORTATION OF GIRLS FROM FOREIGN COUNTRIES]) AS no_of_case_registred
+FROM criminal_records_of_India
+WHERE NOT DISTRICT LIKE '%total%'
+GROUP BY DISTRICT, YEAR
+ORDER BY DISTRICT, YEAR;
+
+
+
+
+-- 10 showing domestic voilence against women in each district per year
+SELECT 
+	 DISTRICT
+	,YEAR
+	,SUM
+		(
+		+[DOWRY DEATHS]
+		+[CRUELTY BY HUSBAND OR BY HIS RELATIVES]) AS no_of_case_registred
+FROM criminal_records_of_India
+WHERE NOT DISTRICT LIKE '%total%'
+GROUP BY DISTRICT, YEAR
+ORDER BY DISTRICT, YEAR;
+
+
+
+
+
+-- 11 dangerous state per year
+WITH
+x AS
+(
+	SELECT
+		YEAR
+		,[STATE/UT]
+		,SUM
+			  (
+			  +[MURDER]
+			  +[ATTEMPT TO MURDER]
+			  +[CULPABLE HOMOSIDE NOT AMMOUNTING TO MURDER]
+			  +[RAPE]
+			  +[CUSTODIAL RAPE]
+			  +[OTHER RAPE]
+			  +[KIDNAPPING & ABDUCTION]
+			  +[KIDNAPPING AND ABDUCTION OF WOMEN AND GIRLS]
+			  +[KIDNAPPING AND ABDUCTION OF OTHERS]
+			  +[DACOITY]
+			  +[PREPARATION AND ASSEMBLY FOR DACOITY]
+			  +[ROBBERY]
+			  +[BURGLARY]
+			  +[THEFT]
+			  +[AUTO THEFT]
+			  +[OTHER THEFT]
+			  +[RIOTS]
+			  +[CRIMINAL BREACH OF TRUST]
+			  +[CHEATING]
+			  +[COUNTERFIETING]
+			  +[ARSON]
+			  +[HURT/GREVIOUS HURT]
+			  +[DOWRY DEATHS]
+			  +[ASSAULTON WOMEN WITH INTENT TO OUTRAGE HER MODESTY]
+			  +[INSULT TO MODESTY OF WOMEN]
+			  +[CRUELTY BY HUSBAND OR BY HIS RELATIVES]
+			  +[IMPORTATION OF GIRLS FROM FOREIGN COUNTRIES]
+			  +[CAUSING DEATH BY NEGLIGENCE]
+			  +[OTHER IPC CRIMES]) AS no_of_case_registred
+	FROM criminal_records_of_India
+	WHERE NOT DISTRICT = 'total'
+	GROUP BY year, [STATE/UT]
+)
+SELECT 
+	 YEAR
+	,[STATE/UT]
+	,no_of_case_registred
+	,DENSE_RANK() OVER(PARTITION BY year ORDER BY no_of_case_registred DESC) AS most_dangerous
+FROM x;
+
+
+
+
+
+-- 12 least dangerous state per year
+WITH
+x AS
+(
+	SELECT
+		YEAR
+		,[STATE/UT]
+		,SUM
+			  (
+			  +[MURDER]
+			  +[ATTEMPT TO MURDER]
+			  +[CULPABLE HOMOSIDE NOT AMMOUNTING TO MURDER]
+			  +[RAPE]
+			  +[CUSTODIAL RAPE]
+			  +[OTHER RAPE]
+			  +[KIDNAPPING & ABDUCTION]
+			  +[KIDNAPPING AND ABDUCTION OF WOMEN AND GIRLS]
+			  +[KIDNAPPING AND ABDUCTION OF OTHERS]
+			  +[DACOITY]
+			  +[PREPARATION AND ASSEMBLY FOR DACOITY]
+			  +[ROBBERY]
+			  +[BURGLARY]
+			  +[THEFT]
+			  +[AUTO THEFT]
+			  +[OTHER THEFT]
+			  +[RIOTS]
+			  +[CRIMINAL BREACH OF TRUST]
+			  +[CHEATING]
+			  +[COUNTERFIETING]
+			  +[ARSON]
+			  +[HURT/GREVIOUS HURT]
+			  +[DOWRY DEATHS]
+			  +[ASSAULTON WOMEN WITH INTENT TO OUTRAGE HER MODESTY]
+			  +[INSULT TO MODESTY OF WOMEN]
+			  +[CRUELTY BY HUSBAND OR BY HIS RELATIVES]
+			  +[IMPORTATION OF GIRLS FROM FOREIGN COUNTRIES]
+			  +[CAUSING DEATH BY NEGLIGENCE]
+			  +[OTHER IPC CRIMES]) AS no_of_case_registred
+	FROM criminal_records_of_India
+	WHERE NOT DISTRICT = 'total'
+	GROUP BY year, [STATE/UT]
+)
+SELECT 
+	 YEAR
+	,[STATE/UT]
+	,no_of_case_registred
+	,DENSE_RANK() OVER(PARTITION BY year ORDER BY no_of_case_registred) AS least_dangerous
+FROM x;
+
+
+-- creating a stored procedure for looking at a specific crime per state or district
+
+CREATE OR ALTER PROCEDURE crime_show @crime VARCHAR(20)
+AS
+	DECLARE @querry NVARCHAR(MAX) 
+BEGIN
+	SET @querry = N'SELECT
+		 [STATE/UT]
+		,SUM(['+@crime+']) AS [total_'+@crime+']
+	FROM criminal_records_of_India
+	GROUP BY [STATE/UT]
+	ORDER BY [total_'+@crime+']'
+	EXEC sp_executesql @querry
+END;
+
+
+EXEC crime_show @crime = 'OTHER IPC CRIMES'
